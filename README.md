@@ -4,7 +4,7 @@
 
 <p>The primary goal is to create a tool that adjusts the study planning process,enhances productivity,and maximizes academic performance.This includes:.</p>
 <ul>
-  <li>Creating study schedule based on various factors such as exam dates,number of chapters or topics to be covered and available study time</li>-
+  <li>Creating study schedule based on various factors such as exam dates,number of chapters or topics to be covered and available study time</li>
   <li>Adding features that help students in managing time effectively during study sessions.</li>
   <li>Developing features to help students organize their study materials efficiently.</li>
   <li>Creating a mechanism for checking their overall progress on study tasks and goals.</li>
