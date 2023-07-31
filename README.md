@@ -1,4 +1,4 @@
-> **Project Proposal**:  _Exam Study Planner
+<h1>**Project Proposal**:  _Exam Study Planner</h1> 
 > 
 _The Exam Study Planner will be created using the C++ programming language, utilizing functions, structures, and file management techniques. This project aims to address the common challenge of preparing for exams by providing a solution that optimizes study schedules and enhances time management. 
 
