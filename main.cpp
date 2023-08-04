@@ -35,7 +35,7 @@ void displayTask(const string &filename)
   }
   else
   {
-    cout << "Unable to open the file. \n";
+    cout << "Unable to open this file. \n";
   }
 }
 void saveTaskToFile(const StudyTask &task, const string &filename)
@@ -86,7 +86,6 @@ int main()
 {
   const string filename = "study_tasks.txt";
   char choice;
-
   do
   {
     StudyTask task;
@@ -119,6 +118,5 @@ int main()
     }
 
   } while (choice != '3');
-
   return 0;
 }
