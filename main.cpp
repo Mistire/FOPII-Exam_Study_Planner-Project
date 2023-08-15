@@ -1,122 +1,93 @@
-#include <iostream>
-#include <fstream>
+#include "user.h"
 #include "study_task.h"
-
-using namespace std;
-
-void addTask(StudyTask &task)
-{
-  cout << "Enter subject: ";
-  getline(cin, task.subject);
-
-  cout << "Enter task description: ";
-  getline(cin, task.description);
-}
-void displayTask(const string &filename)
-{
-  ifstream file(filename);
-  string line;
-
-  if (file.is_open())
-  {
-    cout << "**** Tasks **** \n";
-    while (getline(file, line))
-    {
-      if (line == "====")
-      {
-        cout << endl;
-      }
-      else
-      {
-        cout << line;
-      }
-    }
-    file.close();
-  }
-  else
-  {
-    cout << "Unable to open this file. \n";
-  }
-}
-void saveTaskToFile(const StudyTask &task, const string &filename)
-{
-  ofstream file(filename, ios::app);
-
-  if (file.is_open())
-  {
-    file << task.subject << '\n';
-    file << task.description << '\n';
-    file << "====\n";
-    file.close();
-    cout << "Task saved successfully!\n";
-  }
-  else
-  {
-    cout << "Unable to open the file.\n";
-  }
-}
-
-void printLine(char symbol, int length)
-{
-  for (int i = 0; i < length; ++i)
-  {
-    cout << symbol;
-  }
-  cout << endl;
-}
-
-void printCenteredText(const string &text, int lineLength)
-{
-  int spaces = (lineLength - text.length()) / 2;
-  for (int i = 0; i < spaces; ++i)
-  {
-    cout << " ";
-  }
-  cout << text << endl;
-}
-
-void printUI()
-{
-  printLine('*', 40);
-  printCenteredText("Welcome to the Study Task Manager!", 40);
-  printLine('*', 40);
-}
 
 int main()
 {
-  const string filename = "study_tasks.txt";
-  char choice;
-  do
-  {
-    StudyTask task;
+  User user, userAdmin;
+  int choice;
+  bool exited = false, noAdmin = true;
 
-    printUI();
+  if (!(loadUsersFromFile("admin.txt", numOfAdmins, MAX_ADMINS, admins) && 
+      loadUsersFromFile("users.txt", numOfUsers, MAX_USERS, users))) {
+        std::cout << "UNABLE TO OPEN READ FILE.\n";
+        exited = true;
+      }
+  
+  
+  std::system("cls");
+  printUI("Welcome to the Study Task Manager!");
 
-    cout << "Menu: \n";
-    cout << "1. Add task \n";
-    cout << "2. Display Task\n";
-    cout << "3. Exit\n";
-    cout << "Enter your choice: ";
-    cin >> choice;
-    cin.ignore();
-
-    switch (choice)
+  while(!exited)
     {
-    case '1':
-      addTask(task);
-      saveTaskToFile(task, filename);
-      break;
-    case '2':
-      displayTask(filename);
-      break;
-    case '3':
-      cout << "Exiting....\n";
-      break;
-    default:
-      cout << "Invalid choice. Try sgain.\n";
-      break;
+      cout << "Login Menu:\n";
+      cout << "1. Admin\n";
+      cout << "2. Sign-In\n";
+      cout << "3. Sign-Up\n";
+      cout << "4. Exit\n";
+      cout << "Enter your choice: ";
+      cin >> choice;
+      cin.ignore();
+
+
+      switch (choice)
+      {
+      case 1:
+        cout << "Enter Admin name: ";
+        cin >> userAdmin.name;
+        
+        cout << "Enter Admin Password: ";
+        cin >> userAdmin.password;
+        
+        for (int i = 0; i < MAX_ADMINS; ++i) {
+          if (userAdmin.name == admins[i].name && userAdmin.password == admins[i].password) {
+            std::system("cls");
+            printUI("Welcome, " + userAdmin.name);
+            adminPage(userAdmin);
+            noAdmin = false;
+            break;
+          }
+        }
+        if (noAdmin == true) {cout << "ENTER CORRECT ADMIN NAME AND PASSWORD.\n"; }
+        break;
+      case 2:
+        cout << "Enter username: ";
+        cin >> user.name;
+        cout << "Enter password: ";
+        cin >> user.password;
+        
+        if(userExists(user.name, user.password)) {
+          std::system("cls");
+          printUI("Welcome, " + user.name);
+          studyTaskMenu(user);
+          break;
+        }
+        
+        cout << "USER DOESN'T EXIST -- try again or create a new account.\n";
+        break;
+      case 3:
+        if(!(numOfUsers < MAX_USERS)) {
+          cout << "USER CAPACITY REACHED.\n";
+          break;
+        }
+        cout << "Enter username: ";
+        cin >> user.name;
+        cout << "Enter password: ";
+        cin >> user.password;
+
+        createUser(user, numOfUsers, MAX_USERS, users);
+        std::system("cls");
+        printUI("Welcome, " + user.name);
+        //show tasks page
+        break;
+      case 4:
+        loadUsersToFile("users.txt", numOfUsers, users);
+        exited = true;
+        break;
+      default:
+        cout << "Invalid choice. Try again.\n";
+        break;
+      }
+
     }
 
-  } while (choice != '3');
-  return 0;
 }
