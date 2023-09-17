@@ -1,93 +1,105 @@
 #include "user.h"
 #include "study_task.h"
+#include "functions.h"
+
+#include <mysql_driver.h>
+#include <mysql_connection.h>
+#include <cppconn/resultset.h>
+#include <cppconn/statement.h>
+
+#include <iostream>
+#include <iomanip>
+#include <sstream>
+
+// Function to establish a connection to the MySQL database
 
 int main()
 {
-  User user, userAdmin;
+  Users user, userAdmin;
+  bool exited = false;
   int choice;
-  bool exited = false, noAdmin = true;
-
-  if (!(loadUsersFromFile("admin.txt", numOfAdmins, MAX_ADMINS, admins) && 
-      loadUsersFromFile("users.txt", numOfUsers, MAX_USERS, users))) {
-        std::cout << "UNABLE TO OPEN READ FILE.\n";
-        exited = true;
-      }
-  
-  
-  std::system("cls");
-  printUI("Welcome to the Study Task Manager!");
-
-  while(!exited)
+  sql::Connection *con = createConnection();
+  try
+  {
+    printUI("wellcome to the study task Manager!");
+    while (!exited)
     {
-      cout << "Login Menu:\n";
-      cout << "1. Admin\n";
-      cout << "2. Sign-In\n";
-      cout << "3. Sign-Up\n";
-      cout << "4. Exit\n";
-      cout << "Enter your choice: ";
+      cout << "Login Menu:\n"
+           << "1. Admin\n"
+           << "2. Sign-In\n"
+           << "3. Sign-Up\n"
+           << "4. Exit\n"
+           << "Enter your choice: \n";
       cin >> choice;
       cin.ignore();
-
-
       switch (choice)
       {
       case 1:
-        cout << "Enter Admin name: ";
+        cout << "Enter Admin username: ";
         cin >> userAdmin.name;
-        
+
         cout << "Enter Admin Password: ";
         cin >> userAdmin.password;
-        
-        for (int i = 0; i < MAX_ADMINS; ++i) {
-          if (userAdmin.name == admins[i].name && userAdmin.password == admins[i].password) {
-            std::system("cls");
-            printUI("Welcome, " + userAdmin.name);
-            adminPage(userAdmin);
-            noAdmin = false;
-            break;
-          }
+        if (userExist(type::Admin, con, false, userAdmin.name, userAdmin.password))
+        {
+          system("cls");
+          printUI("Welcome, " + userAdmin.name);
+          adminPage(userAdmin);
+
+          break;
         }
-        if (noAdmin == true) {cout << "ENTER CORRECT ADMIN NAME AND PASSWORD.\n"; }
+        else
+        {
+          cout << "ENTER CORRECT ADMIN NAME AND PASSWORD.\n";
+          break;
+        }
         break;
       case 2:
         cout << "Enter username: ";
         cin >> user.name;
         cout << "Enter password: ";
         cin >> user.password;
-        
-        if(userExists(user.name, user.password)) {
-          std::system("cls");
+        if (userExist(type::User, con, false, user.name, user.password))
+        {
+          system("cls");
           printUI("Welcome, " + user.name);
           studyTaskMenu(user);
           break;
         }
-        
-        cout << "USER DOESN'T EXIST -- try again or create a new account.\n";
+        cout << "ENTER CORRECT ADMIN NAME AND PASSWORD.\n";
         break;
+
       case 3:
-        if(!(numOfUsers < MAX_USERS)) {
-          cout << "USER CAPACITY REACHED.\n";
-          break;
-        }
         cout << "Enter username: ";
         cin >> user.name;
         cout << "Enter password: ";
         cin >> user.password;
-
-        createUser(user, numOfUsers, MAX_USERS, users);
-        std::system("cls");
-        printUI("Welcome, " + user.name);
-        //show tasks page
+        if (!(userExist(type::User, con, true, user.name)))
+        {
+          add(type::User, con, user.name, user.password);
+          system("cls");
+          printUI("Welcome, " + user.name);
+          studyTaskMenu(user);
+        }
+        else
+        {
+          std::cout << "the user name already exists\n";
+        }
+        // show tasks page
         break;
       case 4:
-        loadUsersToFile("users.txt", numOfUsers, users);
+        std::cout << "exiting...\nexiting...";
         exited = true;
+        delete con;
         break;
       default:
         cout << "Invalid choice. Try again.\n";
         break;
       }
-
     }
-
+  }
+  catch (sql::SQLException &e)
+  {
+    cout << "SQL exeption error: " << e.what() << std::endl;
+  }
 }

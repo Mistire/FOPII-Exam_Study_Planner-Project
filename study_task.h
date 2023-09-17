@@ -1,3 +1,4 @@
+#pragma once
 #ifndef STUDY_TASK_H
 #define STUDY_TASK_H
 
@@ -5,132 +6,57 @@
 #include <iostream>
 #include <fstream>
 
-struct StudyTask {
-  User user;
-  std::string subject;
-  std::string description;
-  std::string date;
-};
+#include <mysql_driver.h>
+#include <mysql_connection.h>
+#include <cppconn/resultset.h>
+#include <cppconn/statement.h>
 
-void addTask(StudyTask &task)
+void studyTaskMenu(Users &currentUser)
 {
-  cout << "Enter subject: ";
-  getline(cin, task.subject);
-
-  cout << "Enter task description: ";
-  getline(cin, task.description);
-}
-
-void displayTask(const string &filename)
-{
-  ifstream file(filename);
-  string line;
-
-  if (file.is_open())
+  int choice;
+  string password;
+  bool exited = false;
+  sql::Connection *con = createConnection();
+  try
   {
-    cout << "\n**** Tasks **** \n";
-    while (file >> line)
+
+    while (!exited)
     {
-      if (line == "====")
-      {
-        cout << endl;
-      }
-      else
-      {
-        cout << line << "\n";
-      }
-    }
-    file.close();
-  }
-  else
-  {
-    cout << "Unable to open this file. \n";
-  }
-}
-
-void saveTaskToFile(const StudyTask &task, const string &filename, User& user)
-{
-  ofstream file(filename, ios::app);
-
-  if (file.is_open())
-  {
-    file << user.name << "\n";
-    file << task.subject << " " << task.description << '\n';
-    file << "====\n";
-    file.close();
-    cout << "Task saved successfully!\n";
-  }
-  else
-  {
-    cout << "Unable to open the file.\n";
-  }
-}
-
-void printLine(char symbol, int length)
-{
-  for (int i = 0; i < length; ++i)
-  {
-    cout << symbol;
-  }
-  cout << endl;
-}
-
-void printCenteredText(const string &text, int lineLength)
-{
-  int spaces = (lineLength - text.length()) / 2;
-  for (int i = 0; i < spaces; ++i)
-  {
-    cout << " ";
-  }
-  cout << text << endl;
-}
-
-void printUI(std::string sentence)
-{
-  cout << '\n';
-  printLine('*', 40);
-  printCenteredText(sentence, 40);
-  printLine('*', 40);
-  cout << '\n';
-}
-
-void studyTaskMenu (User& currentUser) {
-    int choice;
-    string filename = "study_tasks.txt";
-    StudyTask task;
-    string password;
-    bool exited = false;
-
-    while(!exited) {
       cout << "Menu: \n";
       cout << "1. Add Task\n";
       cout << "2. Display Task\n";
-      cout << "3. Change User Password\n";
-      cout << "4. Go Back\n";
+      cout << "3. Change your Password\n";
+      cout << "4. change task completion\n";
+      cout << "5. Go Back\n";
       cout << "Enter your choice: ";
       cin >> choice;
       cin.ignore();
-
       switch (choice)
       {
       case 1:
-        addTask(task);
-        saveTaskToFile(task, filename, currentUser);
+        add(type::Task, con, currentUser.name);
         break;
       case 2:
         system("cls");
         cout << "Here are all your tasks.";
-        displayTask(filename);
+        sql::Statement *stmt = con->createStatement();
+        sql::ResultSet *res = stmt->executeQuery("select user_id from users where usermane='" + currentUser.name + "'");
+        res->next();
+        display(type::Task, con, res->getString("user_id"));
         break;
       case 3:
         cout << "Enter new password: ";
         cin >> password;
-        if (password == currentUser.password) { 
-            std::cout << "SAME PASSWORD AS THE PREVIOUS ONE -- tryagain with a new password.\n";
-            break;
+        if (password == currentUser.password)
+        {
+          cout << "SAME PASSWORD AS THE PREVIOUS ONE -- tryagain with a new password.\n";
+          break;
         }
-        updateUserPassword(currentUser.name, password, numOfUsers, users);
+        changePassword(type::User, con, password, currentUser.name);
       case 4:
+        taskCompletion(con, currentUser.name);
+        break;
+      case 5:
         cout << "Exiting....\n";
         exited = true;
         system("cls");
@@ -140,6 +66,11 @@ void studyTaskMenu (User& currentUser) {
         break;
       }
     }
+  }
+  catch (sql::SQLException &e)
+  {
+    cout << "SQL exeption error: " << e.what() << std::endl;
+  }
 }
 
 #endif
