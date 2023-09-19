@@ -1,11 +1,10 @@
-#include "user.h"
-#include "study_task.h"
 #include "functions.h"
 
 #include <mysql_driver.h>
 #include <mysql_connection.h>
 #include <cppconn/resultset.h>
 #include <cppconn/statement.h>
+#include <cppconn/prepared_statement.h>
 
 #include <iostream>
 #include <iomanip>
@@ -40,12 +39,11 @@ int main()
 
         cout << "Enter Admin Password: ";
         cin >> userAdmin.password;
-        if (userExist(type::Admin, con, false, userAdmin.name, userAdmin.password))
+        if (userExists(con, type::Admin, userAdmin.name) && checkPassword(con, type::Admin, userAdmin.name, userAdmin.password))
         {
           system("cls");
           printUI("Welcome, " + userAdmin.name);
           adminPage(userAdmin);
-
           break;
         }
         else
@@ -53,20 +51,22 @@ int main()
           cout << "ENTER CORRECT ADMIN NAME AND PASSWORD.\n";
           break;
         }
-        break;
+
+        // break;
       case 2:
         cout << "Enter username: ";
         cin >> user.name;
         cout << "Enter password: ";
         cin >> user.password;
-        if (userExist(type::User, con, false, user.name, user.password))
+        if (userExists(con, type::User, user.name) && checkPassword(con, type::User, user.name, user.password))
         {
           system("cls");
           printUI("Welcome, " + user.name);
           studyTaskMenu(user);
           break;
         }
-        cout << "ENTER CORRECT ADMIN NAME AND PASSWORD.\n";
+        cout << "ENTER CORRECT user NAME AND PASSWORD.\n";
+
         break;
 
       case 3:
@@ -74,7 +74,7 @@ int main()
         cin >> user.name;
         cout << "Enter password: ";
         cin >> user.password;
-        if (!(userExist(type::User, con, true, user.name)))
+        if (!(userExists(con, type::User, user.name)))
         {
           add(type::User, con, user.name, user.password);
           system("cls");
@@ -86,6 +86,7 @@ int main()
           std::cout << "the user name already exists\n";
         }
         // show tasks page
+
         break;
       case 4:
         std::cout << "exiting...\nexiting...";
