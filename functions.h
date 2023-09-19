@@ -156,33 +156,7 @@ void addUser(sql::Connection *con, std::string username, std::string password)
     }
 }
 
-// void addUser(sql::Connection* con, std::string username, std::string password)
-//{
-//     try
-//     {
-//         sql::Statement* stmt = con->createStatement();
-//         std::string query;
-//         std::string user_id;
-//         ++noOfusers;
-//         user_id = createUser_id(noOfusers);
-//         query = "insert into users(user_id, username, password) values('" + user_id + "' ,'" + username + "' ,'" + password + "')";
-//         stmt->execute("insert into no_of_task(user_id) values('" + user_id + "')");
-//         if (stmt->execute(query))
-//         {
-//             std::cout << "ADDED SUCCESSFULLY" << std::endl;
-//         }
-//         else
-//         {
-//             std::cout << "USER IS NOT ADDED" << std::endl;
-//         }
-//         delete stmt;
-//     }
-//     catch (sql::SQLException& e)
-//     {
-//         std::cerr << e.what() << endl;
-//     }
-//
-// }
+
 void addTask(sql::Connection *con, std::string username)
 {
     try
@@ -252,50 +226,6 @@ void addTask(sql::Connection *con, std::string username)
         std::cerr << e.what() << std::endl;
     }
 }
-
-// void addTask(sql::Connection* con, std::string username)
-//{
-//     try
-//     {
-//         int amount;
-//         std::string user_id, query;
-//         sql::Statement* stmt = con->createStatement();
-//         sql::ResultSet* res = stmt->executeQuery("select user_id from users where username='" + username + "'");
-//         res->next();
-//         user_id = res->getString("user_id");
-//
-//         res = stmt->executeQuery("select amount from no_of_task where user_id='" + user_id + "'");
-//         res->next();
-//         amount = res->getInt("amount");
-//         amount++;
-//         stmt->execute("update no_of_task set amount='" + std::to_string(amount) + "' where user_id='" + user_id + "'");
-//         delete res;
-//         std::string subject, description;
-//         std::cout << "enter the subject " << std::endl;
-//         std::cin >> subject;
-//         std::cin.ignore();
-//         std::cout << "enter the description " << std::endl;
-//         std::getline(cin,description);
-//         std::cin.ignore();
-//
-//         query = "insert into task(user_id,task_id, subject, description,completion) values('" + user_id + "' ,'" + std::to_string(amount) + "' ,'" + subject + "' ,'" + description + "','" + std::to_string(false) + "')";
-//         bool executed = stmt->execute(query);
-//         if (executed)
-//         {
-//             std::cout << "TASK ADDED SUCCESSFULLY" << std::endl;
-//         }
-//         else
-//         {
-//             std::cout << "TASK IS NOT ADDED" << std::endl;
-//         }
-//         delete stmt;
-//         }
-//     catch (sql::SQLException& e)
-//     {
-//         std::cerr << e.what() << endl;
-//     }
-//
-// }
 
 auto add(type Type, sql::Connection *con, std::string username, std::string password = "")
 {
