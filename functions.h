@@ -6,6 +6,7 @@
 #include <mysql_connection.h>
 #include <cppconn/resultset.h>
 #include <cppconn/statement.h>
+#include <cppconn/prepared_statement.h>
 
 #include <iostream>
 #include <iomanip>
@@ -15,6 +16,7 @@
 
 using std::cin;
 using std::cout;
+using std::endl;
 using std::string;
 
 struct Users
@@ -22,7 +24,7 @@ struct Users
     string name;
     string password;
 };
-int noOfusers = 0;
+
 int numOfAdmins = 0;
 
 enum type
@@ -43,210 +45,439 @@ sql::Connection *createConnection()
 
     return con;
 }
+int addNum(sql::Connection *con)
+{
+    sql::Statement *stmt(con->createStatement());
+
+    sql::ResultSet *res(stmt->executeQuery("select number from no_of_users"));
+    res->next();
+    int32_t num = (res->getInt("number"));
+
+    delete res;
+    delete stmt;
+    sql::PreparedStatement *pstmt(con->prepareStatement("update no_of_users set number=?"));
+    pstmt->setInt(1, ++num);
+    pstmt->execute();
+    delete pstmt;
+    return num;
+}
 std::string createUser_id(int number)
 {
-    std::string formattedNumber = std::to_string(number);
-    std::ostringstream oss;
-    oss << std::setfill('0') << std::setw(4) << formattedNumber;
-    std::string paddedNumber = oss.str();
-    return "ETS" + paddedNumber + "/15";
+    try
+    {
+        std::string formattedNumber = std::to_string(number);
+        std::ostringstream oss;
+        oss << std::setfill('0') << std::setw(4) << formattedNumber;
+        std::string paddedNumber = oss.str();
+        return "ETS" + paddedNumber + "/15";
+    }
+    catch (sql::SQLException &e)
+    {
+        std::cerr << e.what() << endl;
+    }
 }
 void addAdmin(sql::Connection *con, std::string username, std::string password)
 {
-    sql::Statement *stmt = con->createStatement();
-    std::string query;
-    query = "insert into admins(username, password) values('" + username + "' ,'" + password + "')";
-    ++numOfAdmins;
-    if (stmt->execute(query))
+    try
     {
-        std::cout << "ADDED SUCCESSFULLY" << std::endl;
+        sql::PreparedStatement *pstmt = con->prepareStatement("INSERT INTO admins (username, password) VALUES (?, ?)");
+
+        pstmt->setString(1, username);
+        pstmt->setString(2, password);
+
+        if (pstmt->executeUpdate() > 0)
+        {
+            std::cout << "ADDED SUCCESSFULLY" << std::endl;
+        }
+        else
+        {
+            std::cout << "ADMIN IS NOT ADDED" << std::endl;
+        }
+
+        delete pstmt;
     }
-    else
+    catch (sql::SQLException &e)
     {
-        std::cout << "ADMIN IS NOT ADDED" << std::endl;
+        std::cerr << e.what() << std::endl;
+        throw e;
     }
-    delete stmt;
 }
+
+// void addAdmin(sql::Connection* con, std::string username, std::string password)
+//{
+//     try
+//     {
+//         sql::Statement* stmt = con->createStatement();
+//         std::string query;
+//         query = "insert into admins(username, password) values('" + username + "' ,'" + password + "')";
+//         ++numOfAdmins;
+//         if (stmt->execute(query))
+//         {
+//             std::cout << "ADDED SUCCESSFULLY" << std::endl;
+//         }
+//         else
+//         {
+//             std::cout << "ADMIN IS NOT ADDED" << std::endl;
+//         }
+//         delete stmt;
+//     }
+//     catch (sql::SQLException& e)
+//     {
+//         std::cerr << e.what() << endl;
+//     }
+//
+// }
 void addUser(sql::Connection *con, std::string username, std::string password)
 {
-    sql::Statement *stmt = con->createStatement();
-    std::string query;
-    std::string user_id;
-    ++noOfusers;
-    user_id = createUser_id(noOfusers);
-    query = "insert into users(user_id, username, password) values('" + user_id + "' ,'" + username + "' ,'" + password + "')";
-    stmt->execute("insert into no_of_task(user_id) values('" + user_id + "'");
-    if (stmt->execute(query))
+    try
     {
-        std::cout << "ADDED SUCCESSFULLY" << std::endl;
+        sql::PreparedStatement *pstmt = con->prepareStatement("INSERT INTO users VALUES(?, ?, ?)");
+        int noOfusers = addNum(con);
+        std::string user_id = createUser_id(noOfusers); // Assuming you have a createUser_id function.
+
+        pstmt->setString(1, user_id);
+        pstmt->setString(2, username);
+        pstmt->setString(3, password);
+
+        if (pstmt->executeUpdate() > 0)
+        {
+
+            // Now, insert a record into the 'no_of_task' table
+            pstmt = con->prepareStatement("INSERT INTO no_of_task (user_id) VALUES (?)");
+            pstmt->setString(1, user_id);
+            pstmt->executeUpdate();
+            std::cout << "ADDED SUCCESSFULLY" << std::endl;
+        }
+        else
+        {
+            std::cout << "USER IS NOT ADDED" << std::endl;
+        }
+
+        delete pstmt;
     }
-    else
+    catch (sql::SQLException &e)
     {
-        std::cout << "USER IS NOT ADDED" << std::endl;
+        std::cerr << e.what() << std::endl;
+        return;
     }
-    delete stmt;
 }
+
+// void addUser(sql::Connection* con, std::string username, std::string password)
+//{
+//     try
+//     {
+//         sql::Statement* stmt = con->createStatement();
+//         std::string query;
+//         std::string user_id;
+//         ++noOfusers;
+//         user_id = createUser_id(noOfusers);
+//         query = "insert into users(user_id, username, password) values('" + user_id + "' ,'" + username + "' ,'" + password + "')";
+//         stmt->execute("insert into no_of_task(user_id) values('" + user_id + "')");
+//         if (stmt->execute(query))
+//         {
+//             std::cout << "ADDED SUCCESSFULLY" << std::endl;
+//         }
+//         else
+//         {
+//             std::cout << "USER IS NOT ADDED" << std::endl;
+//         }
+//         delete stmt;
+//     }
+//     catch (sql::SQLException& e)
+//     {
+//         std::cerr << e.what() << endl;
+//     }
+//
+// }
 void addTask(sql::Connection *con, std::string username)
 {
-    int amount;
-    std::string user_id, query;
-    sql::Statement *stmt = con->createStatement();
-    sql::ResultSet *res = stmt->executeQuery("select user_id from users where username='" + username + "'");
-    res->next();
-    user_id = res->getString("user_id");
-
-    res = stmt->executeQuery("select amount from no_of_task where user_id='" + user_id + "'");
-    res->next();
-    amount = res->getInt("amount");
-    amount++;
-    stmt->execute("update no_of_task set amount='" + std::to_string(amount) + "' where user_id='" + user_id + "'");
-    delete res;
-    std::string subject, description;
-    std::cout << "enter the subject " << std::endl;
-    std::cin >> subject;
-    std::cin.ignore();
-    std::cout << "enter the description " << std::endl;
-    std::cin >> description;
-    std::cin.ignore();
-
-    query = "insert into task(user_id,task_id, subject, description,completion) values('" + user_id + "' ,'" + std::to_string(amount) + "' ,'" + subject + "' ,'" + description + "','" + std::to_string(false) + "'";
-    if (stmt->execute(query))
+    try
     {
-        std::cout << "TASK ADDED SUCCESSFULLY" << std::endl;
+        int amount;
+        std::string user_id, query;
+        sql::PreparedStatement *pstmt = con->prepareStatement("SELECT user_id FROM users WHERE username = ?");
+        pstmt->setString(1, username);
+        sql::ResultSet *res = pstmt->executeQuery();
+
+        if (res->next())
+        {
+            user_id = res->getString("user_id");
+
+            pstmt = con->prepareStatement("SELECT amount FROM no_of_task WHERE user_id = ?");
+            pstmt->setString(1, user_id);
+            res = pstmt->executeQuery();
+
+            if (res->next())
+            {
+                amount = res->getInt("amount");
+                amount++;
+
+                std::string subject, description;
+                std::cout << "Enter the subject: " << std::endl;
+                std::cin >> subject;
+                std::cin.ignore();
+                std::cout << "Enter the description: " << std::endl;
+                std::getline(std::cin, description);
+
+                pstmt = con->prepareStatement("INSERT INTO task (user_id, task_id, subject, description, completion) VALUES (?, ?, ?, ?, ?)");
+                pstmt->setString(1, user_id);
+                pstmt->setInt(2, amount);
+                pstmt->setString(3, subject);
+                pstmt->setString(4, description);
+                pstmt->setBoolean(5, false);
+
+                /*bool executed = pstmt->execute();*/
+
+                if (pstmt->executeUpdate())
+                {
+                    std::cout << "TASK ADDED SUCCESSFULLY" << std::endl;
+                    pstmt = con->prepareStatement("UPDATE no_of_task SET amount = ? WHERE user_id = ?");
+                    pstmt->setInt(1, amount);
+                    pstmt->setString(2, user_id);
+                    pstmt->executeUpdate();
+                }
+                else
+                {
+                    std::cout << "TASK IS NOT ADDED" << std::endl;
+                }
+            }
+            else
+            {
+                std::cout << "No records found for user: " << username << std::endl;
+            }
+        }
+        else
+        {
+            std::cout << "User not found: " << username << std::endl;
+        }
+
+        delete pstmt;
     }
-    else
+    catch (sql::SQLException &e)
     {
-        std::cout << "TASK IS NOT ADDED" << std::endl;
+        std::cerr << e.what() << std::endl;
     }
-    delete stmt;
 }
+
+// void addTask(sql::Connection* con, std::string username)
+//{
+//     try
+//     {
+//         int amount;
+//         std::string user_id, query;
+//         sql::Statement* stmt = con->createStatement();
+//         sql::ResultSet* res = stmt->executeQuery("select user_id from users where username='" + username + "'");
+//         res->next();
+//         user_id = res->getString("user_id");
+//
+//         res = stmt->executeQuery("select amount from no_of_task where user_id='" + user_id + "'");
+//         res->next();
+//         amount = res->getInt("amount");
+//         amount++;
+//         stmt->execute("update no_of_task set amount='" + std::to_string(amount) + "' where user_id='" + user_id + "'");
+//         delete res;
+//         std::string subject, description;
+//         std::cout << "enter the subject " << std::endl;
+//         std::cin >> subject;
+//         std::cin.ignore();
+//         std::cout << "enter the description " << std::endl;
+//         std::getline(cin,description);
+//         std::cin.ignore();
+//
+//         query = "insert into task(user_id,task_id, subject, description,completion) values('" + user_id + "' ,'" + std::to_string(amount) + "' ,'" + subject + "' ,'" + description + "','" + std::to_string(false) + "')";
+//         bool executed = stmt->execute(query);
+//         if (executed)
+//         {
+//             std::cout << "TASK ADDED SUCCESSFULLY" << std::endl;
+//         }
+//         else
+//         {
+//             std::cout << "TASK IS NOT ADDED" << std::endl;
+//         }
+//         delete stmt;
+//         }
+//     catch (sql::SQLException& e)
+//     {
+//         std::cerr << e.what() << endl;
+//     }
+//
+// }
 
 auto add(type Type, sql::Connection *con, std::string username, std::string password = "")
 {
-
-    if (Type == type::Admin)
-    {
-        addAdmin(con, username, password);
-    }
-    else if (Type == type::User)
+    try
     {
 
-        addUser(con, username, password);
+        if (Type == type::Admin)
+        {
+            addAdmin(con, username, password);
+        }
+        else if (Type == type::User)
+        {
+
+            addUser(con, username, password);
+        }
+        else
+        {
+            // move this to the calling
+            //  add task
+            addTask(con, username);
+        }
     }
-    else
+    catch (sql::SQLException &e)
     {
-        // move this to the calling
-        //  add task
-        addTask(con, username);
+        std::cerr << e.what() << endl;
     }
 }
 
 auto deleted(type Type, sql::Connection *con, std::string username)
 {
-    sql::Statement *stmt = con->createStatement();
-    std::string query;
-
-    if (Type == type::Admin)
+    try
     {
-        query = "delete from admins where admins.username='" + username + "'";
-    }
-    else
-    {
-        query = "delete from users where users.username='" + username + "'";
-    }
+        sql::Statement *stmt = con->createStatement();
+        std::string query;
 
-    stmt->execute(query); // Added successfully
-    delete stmt;
+        if (Type == type::Admin)
+        {
+            query = "delete from admins where username='" + username + "'";
+        }
+        else
+        {
+            query = "delete from users where username='" + username + "'";
+        }
+
+        stmt->execute(query); // Added successfully
+        system("cls");
+        cout << "\ndeleted successful\n";
+        delete stmt;
+    }
+    catch (sql::SQLException &e)
+    {
+        std::cerr << e.what() << endl;
+    }
 }
 
-auto display(type Type, sql::Connection *con, std::string user_id = NULL)
+auto display(type Type, sql::Connection *con, std::string user_id = "")
 {
-    sql::Statement *stmt = con->createStatement();
-    sql::ResultSet *res = nullptr;
-    std::string query;
-
-    if (Type == type::User)
+    try
     {
-        query = "select username from users";
-        res = stmt->executeQuery(query);
-        while (res->next())
+        sql::Statement *stmt = con->createStatement();
+        sql::ResultSet *res = nullptr;
+        std::string query;
+
+        if (Type == type::User)
         {
-            std::cout << res->getString("username") << std::endl;
+            query = "select username from users";
+            res = stmt->executeQuery(query);
+            while (res->next())
+            {
+                std::cout << res->getString("username") << std::endl;
+            }
         }
+        else if (Type == type::Task)
+        {
+            query = "select subject, description, completion from task where user_id='" + user_id + "'";
+            res = stmt->executeQuery(query);
+            while (res->next())
+            {
+                bool comp = res->getBoolean("completion");
+
+                if (comp)
+                {
+                    std::cout << "[x]";
+                }
+                else
+                {
+                    std::cout << "[]";
+                }
+                std::cout << res->getString("subject") << "     ";
+                std::cout << res->getString("description") << std::endl;
+            }
+        }
+
+        delete res;
+        delete stmt;
     }
-    else if (Type == type::Task)
+    catch (sql::SQLException &e)
     {
-        query = "select subject, description, completion from task where user_id='" + user_id + "'";
-        res = stmt->executeQuery(query);
-        while (res->next())
-        {
-            bool comp = res->getBoolean("completion");
-
-            if (comp)
-            {
-                std::cout << "[x]";
-            }
-            else
-            {
-                std::cout << "[]";
-            }
-            std::cout << res->getString("subject") << "     ";
-            std::cout << res->getString("description") << std::endl;
-        }
+        std::cerr << e.what() << endl;
     }
-
-    delete res;
-    delete stmt;
 }
 
 auto changePassword(type Type, sql::Connection *con, std::string newpassword, std::string username)
 {
-    sql::Statement *stmt = con->createStatement();
-    std::string query;
-    if (Type == type::Admin)
+    try
     {
-        query = "update admins set password ='" + newpassword + "' where username='" + username + "'";
-    }
-    else
-    {
-        query = "update users set password ='" + newpassword + "' where username='" + username + "'";
-    }
-    stmt->execute(query) ? std::cout << "PASSWORD CHANGED SUCCESSFULLY\n" : std::cout << "PASSWORD NOT CHANGED\n";
-    delete stmt;
-}
-void taskCompletion(sql::Connection *con, std::string username)
-{
-    sql::Statement *stmt = con->createStatement();
-    int num;
-    std::string query;
-    query = "select user_id from users where username='" + username + "'";
-    sql::ResultSet *res = stmt->executeQuery(query);
-    res->next();
-    std::string user_id = res->getString("user_id");
-    display(type::Task, con, user_id);
-    std::cout << "\nwhich one is complleted\nenter task_number: ";
-    std::cin >> num;
-    if (!cin.fail())
-    {
-        query = "select amount from no_of_task where user_id='" + user_id + "'";
-        res = stmt->executeQuery(query);
-        if (num > 0 && num <= res->getInt("amount"))
+        sql::Statement *stmt = con->createStatement();
+        std::string query;
+        if (Type == type::Admin)
         {
-            query = "update task set completion=true where task_id='" + std::to_string(num);
-            stmt->execute(query);
+            query = "update admins set password ='" + newpassword + "' where username='" + username + "'";
         }
         else
         {
-            std::cout << "task number " << num << " not exist\n";
+            query = "update users set password ='" + newpassword + "' where username='" + username + "'";
+        }
+        bool queryResult = stmt->executeUpdate(query);
+        system("cls");
+        if (queryResult)
+        {
+            std::cout << "PASSWORD CHANGED SUCCESSFULLY\n";
+        }
+        else
+        {
+            (std::cout << "PASSWORD NOT CHANGED\n");
+        }
+        delete stmt;
+    }
+    catch (sql::SQLException &e)
+    {
+        std::cerr << e.what() << endl;
+    }
+}
+void taskCompletion(sql::Connection *con, std::string username)
+{
+    try
+    {
+        sql::Statement *stmt = con->createStatement();
+        int num;
+        std::string query;
+        query = "select user_id from users where username='" + username + "'";
+        sql::ResultSet *res = stmt->executeQuery(query);
+        res->next();
+        std::string user_id = res->getString("user_id");
+        display(type::Task, con, user_id);
+        std::cout << "\nwhich one is complleted\nenter task_number: ";
+        std::cin >> num;
+        cin.ignore();
+        if (!cin.fail())
+        {
+            query = "select amount from no_of_task where user_id='" + user_id + "'";
+            res = stmt->executeQuery(query);
+            res->next();
+            if (num > 0 && num <= res->getInt("amount"))
+            {
+                query = "update task set completion=true where task_id='" + std::to_string(num) + "'";
+                stmt->execute(query);
+            }
+            else
+            {
+                std::cout << "task number " << num << " not exist\n";
+            }
+        }
+        else
+        {
+            std::cout << "wrong input \n";
         }
     }
-    else
+    catch (sql::SQLException &e)
     {
-        std::cout << "wrong input \n";
+        std::cerr << e.what() << endl;
     }
 }
 void printCenteredText(const std::string &text)
 {
+
     int spaces = (40 - text.length()) / 2;
     for (int i = 0; i < spaces; ++i)
     {
@@ -270,51 +501,137 @@ void printUI(std::string sentence)
     printLine('*', 40);
     std::cout << '\n';
 }
-bool userExist(type Type, sql::Connection *con, bool existOnly, std::string username, std::string password = "")
+bool userExists(sql::Connection *con, type Type, std::string username)
 {
-    std::string query, queryE, truePass;
-    sql::Statement *stmt = con->createStatement();
-    sql::ResultSet *res = nullptr;
+    try
+    {
+        std::string query;
+        size_t count;
+        // sql::PreparedStatement* pstmt = nullptr;
+        // sql::ResultSet* res = nullptr;
 
-    if (Type == type::Admin)
-    {
-        query = "select password from admins where username='" + username + "'";
-        queryE = "select count(*) from admins username='" + username + "'";
-    }
-    else if (Type == type::User)
-    {
-        query = "select password from users where username='" + username + "'";
-        queryE = "select count(*) from users username='" + username + "'";
-    }
-    if (existOnly)
-    {
-        res = stmt->executeQuery(queryE);
-        res->next();
-        int count = res->getInt(1);
-        delete res;
-        delete stmt;
-        if (count == 1)
+        if (Type == type::Admin)
         {
-            return true;
+            query = "select username from admins where username=?";
+        }
+        else if (Type == type::User)
+        {
+            query = "select username from users where username=?";
+        }
+
+        sql::PreparedStatement *pstmt(con->prepareStatement(query));
+        pstmt->setString(1, username);
+        sql::ResultSet *res(pstmt->executeQuery());
+
+        count = res->rowsCount();
+
+        delete res;
+        delete pstmt;
+
+        return (count == 1);
+    }
+    catch (sql::SQLException &e)
+    {
+        std::cerr << e.what() << std::endl;
+        return false;
+    }
+}
+bool checkPassword(sql::Connection *con, type Type, std::string username, std::string password)
+{
+    try
+    {
+        std::string query, truePass;
+        // sql::PreparedStatement* pstmt = nullptr;
+        // sql::ResultSet* res = nullptr;
+
+        if (Type == type::Admin)
+        {
+            query = "select password from admins where username=?";
+        }
+        else if (Type == type::User)
+        {
+            query = "select password from users where username=?";
+        }
+
+        sql::PreparedStatement *pstmt(con->prepareStatement(query));
+        pstmt->setString(1, username);
+        sql::ResultSet *res = pstmt->executeQuery();
+
+        if (res->next())
+        {
+            truePass = res->getString("password");
+            delete res;
+            delete pstmt;
+
+            return (truePass == password);
         }
         else
         {
+            delete res;
+            delete pstmt;
             return false;
         }
     }
-    else if (stmt->execute(query))
+    catch (sql::SQLException &e)
     {
-        res = stmt->executeQuery(query);
-        res->next();
-        truePass = res->getString("password");
-        delete res;
-        delete stmt;
-
-        return truePass == password;
-
-        cout << "incorrect password\n";
+        std::cerr << e.what() << std::endl;
+        return false;
     }
 }
+
+// bool userExist(type Type, sql::Connection* con, bool existOnly, std::string username, std::string password = "")
+//{
+//     try
+//     {
+//         std::string query, queryE, truePass;
+//         sql::Statement* stmt(con->createStatement());
+//
+//
+//
+//         if (Type == type::Admin)
+//         {
+//             query = "select password from admins where username='" + username + "'";
+//             queryE = "select count(*) from admins where username='" + username + "'";
+//         }
+//         else if (Type == type::User)
+//         {
+//             query = "select password from users where username='" + username + "'";
+//             queryE = "select count(*) from users where username='" + username + "'";
+//         }
+//         if (existOnly)
+//         {
+//             sql::ResultSet* res= stmt->executeQuery(queryE);
+//             res->next();
+//             int count = res->getInt(1);
+//             delete res;
+//             delete stmt;
+//             if (count == 1)
+//             {
+//                 return true;
+//             }
+//             else
+//             {
+//                 return false;
+//             }
+//         }
+//         else
+//         {
+//             sql::ResultSet* res = stmt->executeQuery(query);
+//             res->next();
+//             truePass = res->getString("password");
+//             delete res;
+//             delete stmt;
+//
+//             return truePass == password;
+//         }
+//
+//     }
+//     catch (sql::SQLException& e)
+//     {
+//         std::cerr << e.what() << endl;
+//     }
+//
+// }
 
 void adminPage(Users &currentAdmin)
 {
@@ -357,7 +674,7 @@ void adminPage(Users &currentAdmin)
                     cout << "YOU ARE NOT ABLE TO DELETE ADMIN ACCOUNT.\n";
                     break;
                 }
-                deleted(type::Admin, con, admin.name);
+                deleted(type::Admin, con, currentAdmin.name);
                 exited = true;
                 break;
             case 3:
@@ -371,14 +688,9 @@ void adminPage(Users &currentAdmin)
                 changePassword(type::Admin, con, password, currentAdmin.name);
                 break;
             case 4:
-                if (noOfusers == 0)
-                {
-                    cout << "NO USERS FOUND.\n";
-                    break;
-                }
                 cout << "Enter username: ";
                 cin >> user.name;
-                if (userExist(type::User, con, true, user.name))
+                if (userExists(con, type::User, user.name))
                 {
                     deleted(type::User, con, user.name);
                     cout << "DELETED SUCCESSFULLY\n";
@@ -387,11 +699,12 @@ void adminPage(Users &currentAdmin)
                 {
                     cout << "THIS UESR DOESN'T EXIST";
                 }
+
                 break;
             case 5:
                 system("cls");
                 cout << "Here are all the users:\n";
-                display(type::User, con);
+                display(type::User, con, "");
                 break;
             case 6:
                 cout << "Exiting....\n";
@@ -407,16 +720,19 @@ void adminPage(Users &currentAdmin)
     }
     catch (sql::SQLException &e)
     {
-        cout << "SQL exeption error: " << e.what() << std::endl;
+        std::cerr << e.what() << std::endl;
     }
 }
 
 void studyTaskMenu(Users &currentUser)
 {
+    sql::Connection *con = createConnection();
     int choice;
     string password;
+    sql::Statement *stmt(con->createStatement());
+    sql::ResultSet *res;
     bool exited = false;
-    sql::Connection *con = createConnection();
+
     try
     {
 
@@ -438,9 +754,9 @@ void studyTaskMenu(Users &currentUser)
                 break;
             case 2:
                 system("cls");
-                cout << "Here are all your tasks.";
-                sql::Statement *stmt = con->createStatement();
-                sql::ResultSet *res = stmt->executeQuery("select user_id from users where usermane='" + currentUser.name + "'");
+                cout << "Here are all your tasks.\n";
+                stmt = con->createStatement();
+                res = stmt->executeQuery("select user_id from users where username='" + currentUser.name + "'");
                 res->next();
                 display(type::Task, con, res->getString("user_id"));
                 break;
@@ -453,6 +769,7 @@ void studyTaskMenu(Users &currentUser)
                     break;
                 }
                 changePassword(type::User, con, password, currentUser.name);
+                break;
             case 4:
                 taskCompletion(con, currentUser.name);
                 break;
@@ -469,7 +786,7 @@ void studyTaskMenu(Users &currentUser)
     }
     catch (sql::SQLException &e)
     {
-        cout << "SQL exeption error: " << e.what() << std::endl;
+        std::cerr << e.what() << std::endl;
     }
 }
 
