@@ -42,8 +42,8 @@ sql::Connection *createConnection()
     sql::Connection *con;
 
     driver = sql::mysql::get_mysql_driver_instance();
-    con = driver->connect("tcp://127.0.0.1:3306", "root", "mindahun@2119");
-    con->setSchema("exam_study_planner");
+    con = driver->connect("tcp://127.0.0.1:3306", "username", "password");
+    con->setSchema("database_schema");
 
     return con;
 }
@@ -63,22 +63,7 @@ int addNum(sql::Connection *con)
     delete pstmt;
     return num;
 }
-int addNum(sql::Connection *con)
-{
-    sql::Statement *stmt(con->createStatement());
 
-    sql::ResultSet *res(stmt->executeQuery("select number from no_of_users"));
-    res->next();
-    int32_t num = (res->getInt("number"));
-
-    delete res;
-    delete stmt;
-    sql::PreparedStatement *pstmt(con->prepareStatement("update no_of_users set number=?"));
-    pstmt->setInt(1, ++num);
-    pstmt->execute();
-    delete pstmt;
-    return num;
-}
 std::string createUser_id(int number)
 {
     try
